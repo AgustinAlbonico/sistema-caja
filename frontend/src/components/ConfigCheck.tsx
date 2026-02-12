@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
-type BackendMode = 'setup' | 'normal' | 'unavailable'
+type BackendMode = 'normal' | 'unavailable'
 
 /**
- * Componente que verifica si existe configuración al cargar la app.
- * Si no existe, redirige automáticamente a /setup
- * Si existe, permite continuar con el flujo normal
+ * Componente que verifica el estado del backend al cargar la app.
+ * Si el backend no esta operativo, redirige a /database-error.
  */
 export function ConfigCheck({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate()
@@ -14,11 +13,11 @@ export function ConfigCheck({ children }: { children: React.ReactNode }) {
   const [checking, setChecking] = useState(true)
 
   useEffect(() => {
-    const checkConfig = async () => {
-      try {
-        const detectBackendMode = async (): Promise<BackendMode> => {
-          for (let attempt = 0; attempt < 8; attempt++) {
-            try {
+        const checkConfig = async () => {
+          try {
+            const detectBackendMode = async (): Promise<BackendMode> => {
+              for (let attempt = 0; attempt < 8; attempt++) {
+                try {
               const response = await fetch('http://127.0.0.1:47832/api/health', {
                 method: 'GET',
                 signal: AbortSignal.timeout(1500),
@@ -29,37 +28,29 @@ export function ConfigCheck({ children }: { children: React.ReactNode }) {
                 continue
               }
 
-              const data = await response.json()
-              return data?.status === 'setup' ? 'setup' : 'normal'
-            } catch {
-              await new Promise((resolve) => setTimeout(resolve, 300))
-            }
-          }
+                  const data = await response.json()
+                  return data?.status === 'error' ? 'unavailable' : 'normal'
+                } catch {
+                  await new Promise((resolve) => setTimeout(resolve, 300))
+                }
+              }
 
           return 'unavailable'
         }
 
         const mode = await detectBackendMode()
 
-        if (mode === 'setup') {
-          if (location.pathname !== '/setup') {
-            console.log('[ConfigCheck] Backend en setup, redirigiendo a /setup')
-            navigate('/setup', { replace: true })
-          }
-          return
-        }
-
         if (mode === 'normal') {
-          if (location.pathname === '/setup') {
-            console.log('[ConfigCheck] Backend en modo normal, redirigiendo a /login')
+          if (location.pathname === '/database-error') {
+            console.log('[ConfigCheck] Backend operativo, redirigiendo a /login')
             navigate('/login', { replace: true })
           }
           return
         }
 
-        if (location.pathname !== '/setup' && location.pathname !== '/login') {
-          console.log('[ConfigCheck] Backend no responde, redirigiendo a /setup')
-          navigate('/setup', { replace: true })
+        if (location.pathname !== '/database-error') {
+          console.log('[ConfigCheck] Backend no disponible, redirigiendo a /database-error')
+          navigate('/database-error', { replace: true })
         }
       } catch (error) {
         console.error('[ConfigCheck] Error verificando configuración:', error)
@@ -75,12 +66,12 @@ export function ConfigCheck({ children }: { children: React.ReactNode }) {
   if (checking) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface-50">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-600 border-t-transparent"></div>
-          <p className="text-ink-500 text-sm">Verificando configuración...</p>
+          <div className="flex flex-col items-center gap-4">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-600 border-t-transparent"></div>
+            <p className="text-ink-500 text-sm">Verificando backend...</p>
+          </div>
         </div>
-      </div>
-    )
+      )
   }
 
   return <>{children}</>

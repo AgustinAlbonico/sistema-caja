@@ -76,10 +76,10 @@ export function DatabaseErrorPage() {
           </button>
 
           <button
-            onClick={() => (window.location.href = '/setup')}
+            onClick={() => (window.location.href = '/login')}
             className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors"
           >
-            Configurar Conexión
+            Ir al Login
           </button>
         </div>
 
