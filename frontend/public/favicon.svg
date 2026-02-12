@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Fondo del documento -->
+  <rect x="6" y="4" width="20" height="24" rx="1" fill="#4F46E5"/>
+  <rect x="6" y="4" width="20" height="24" rx="1" stroke="#312E81" stroke-width="1.5"/>
+
+  <!-- Líneas del documento -->
+  <line x1="9" y1="10" x2="23" y2="10" stroke="#E0E7FF" stroke-width="2" stroke-linecap="round"/>
+  <line x1="9" y1="14" x2="23" y2="14" stroke="#E0E7FF" stroke-width="2" stroke-linecap="round"/>
+  <line x1="9" y1="18" x2="18" y2="18" stroke="#E0E7FF" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Símbolo de moneda/peso -->
+  <circle cx="22" cy="21" r="6" fill="#FBBF24" stroke="#92400E" stroke-width="1.5"/>
+  <text x="22" y="24" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="#92400E">$</text>
+</svg>

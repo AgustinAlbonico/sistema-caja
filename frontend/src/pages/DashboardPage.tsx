@@ -1,0 +1,212 @@
+import { useRecibos } from '../hooks/useRecibos';
+import { useClientes } from '../hooks/useClientes';
+import { Card } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
+import { Users, FileText, DollarSign, Wallet, TrendingUp, ArrowRight, CreditCard } from 'lucide-react';
+import { formatArgentinaDate } from '../lib/utils';
+
+// Componente Dashboard
+export function DashboardPage() {
+  const { recibos, loading: recibosLoading } = useRecibos();
+  const { clientes, loading: clientesLoading } = useClientes();
+
+  // Calcular estadísticas
+  const safeRecibos = recibos || [];
+  const recibosHoy = safeRecibos.filter((r) => {
+    const reciboDate = new Date(r.fechaEmision); // fecha -> fechaEmision
+    const today = new Date();
+    return (
+      reciboDate.getDate() === today.getDate() &&
+      reciboDate.getMonth() === today.getMonth() &&
+      reciboDate.getFullYear() === today.getFullYear()
+    );
+  });
+
+  const totalCaja = safeRecibos.reduce((sum, r) => sum + Number(r.total), 0);
+  const saldoInicial = 210000; // Mock value for now
+
+  const safeClientes = clientes || []; // Handle potential undefined clientes
+
+  const stats = [
+    {
+      label: 'Ingresos Totales',
+      value: `$ ${totalCaja.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`,
+      icon: DollarSign,
+      trend: '+12.5%',
+      trendUp: true,
+      description: 'vs. mes anterior',
+    },
+    {
+      label: 'Recibos Emitidos',
+      value: recibosHoy.length.toString(),
+      icon: FileText,
+      trend: '+4',
+      trendUp: true,
+      description: 'recibos hoy',
+    },
+    {
+      label: 'Clientes Activos',
+      value: safeClientes.length.toString(),
+      icon: Users,
+      trend: '+2.1%',
+      trendUp: true,
+      description: 'vs. mes anterior',
+    },
+    {
+      label: 'Caja Total',
+      value: `$ ${(saldoInicial + totalCaja).toLocaleString('es-AR', { minimumFractionDigits: 2 })}`,
+      icon: Wallet,
+      trend: 'Estable',
+      trendUp: true,
+      description: 'saldo consolidado',
+    },
+  ];
+
+  const metodos = [
+    { nombre: 'Efectivo', porcentaje: '52', value: '$ 125,000', color: 'bg-emerald-500' },
+    { nombre: 'Transferencia', porcentaje: '28', value: '$ 68,500', color: 'bg-blue-500' },
+    { nombre: 'Tarjeta', porcentaje: '20', value: '$ 42,000', color: 'bg-purple-500' },
+  ];
+
+  if (recibosLoading || clientesLoading) {
+    return (
+      <div className="flex h-96 w-full items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
+          <p className="text-sm font-medium text-ink-500">Cargando dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Stats Grid */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {stats.map((stat) => (
+          <Card key={stat.label} className="p-0 overflow-visible hover:-translate-y-1 transition-transform duration-300">
+            <div className="p-4 md:p-5">
+              <div className="flex items-center justify-between">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-100 text-ink-600 transition-colors group-hover:bg-brand-50 group-hover:text-brand-600">
+                  <stat.icon className="h-5 w-5" />
+                </div>
+                <div className={`flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${stat.trendUp ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+                  {stat.trend}
+                  {stat.trendUp ? <TrendingUp className="ml-1 h-3 w-3" /> : null}
+                </div>
+              </div>
+              <div className="mt-3">
+                <h3 className="text-sm font-medium text-ink-500">{stat.label}</h3>
+                <p className="mt-1 text-xl font-bold tracking-tight text-ink-900 md:text-2xl">{stat.value}</p>
+                <p className="mt-1 text-xs text-ink-400">{stat.description}</p>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Recibos Recientes - Spans 2 cols */}
+        <div className="lg:col-span-2">
+          <Card
+            title="Actividad Reciente"
+            description="Últimos movimientos registrados en el sistema"
+            action={
+              <Button variant="ghost" size="sm" className="text-brand-600 hover:text-brand-700 hover:bg-brand-50">
+                Ver todo <ArrowRight className="ml-1 h-4 w-4" />
+              </Button>
+            }
+          >
+            <div className="mt-3 space-y-3">
+              {safeRecibos.length > 0 ? (
+                safeRecibos.slice(0, 5).map((recibo) => (
+                  <div
+                    key={recibo.idRecibo}
+                     className="group flex items-center justify-between rounded-xl border border-transparent p-2.5 hover:bg-surface-50 hover:border-surface-200 transition-all duration-200"
+                  >
+                     <div className="flex items-center gap-3">
+                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-100 text-ink-500 group-hover:bg-brand-100 group-hover:text-brand-600 transition-colors">
+                         <FileText className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-ink-900 group-hover:text-brand-700 transition-colors">
+                          {recibo.cliente?.nombre || 'Cliente desconocido'}
+                        </p>
+                        <p className="text-xs text-ink-500 flex items-center gap-1">
+                          <span>Comp. #{recibo.nroComprobante}</span>
+                          <span className="h-1 w-1 rounded-full bg-ink-300" />
+                          <span>{formatArgentinaDate(recibo.fechaEmision)}</span>
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-ink-900">
+                        $ {Number(recibo.total).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                      </p>
+                      <div className="flex items-center justify-end gap-1 text-xs font-medium text-emerald-600">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                        Aprobado
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                 <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <div className="h-12 w-12 rounded-full bg-surface-100 flex items-center justify-center mb-3">
+                    <FileText className="h-6 w-6 text-ink-400" />
+                  </div>
+                  <p className="text-sm font-medium text-ink-900">Sin movimientos</p>
+                  <p className="text-xs text-ink-500 max-w-xs mt-1">
+                    No hay recibos registrados aún. Comienza creando uno nuevo.
+                  </p>
+                </div>
+              )}
+            </div>
+          </Card>
+        </div>
+
+        {/* Métodos de Pago - Spans 1 col */}
+        <div>
+          <Card title="Distribución de Ingresos" description="Desglose por método de pago">
+             <div className="mt-4 space-y-4">
+              {metodos.map((metodo) => (
+                <div key={metodo.nombre} className="group">
+                  <div className="mb-2 flex justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className={`h-2 w-2 rounded-full ${metodo.color}`} />
+                      <span className="font-medium text-ink-700">{metodo.nombre}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="block font-semibold text-ink-900">{metodo.porcentaje}%</span>
+                    </div>
+                  </div>
+                  <div className="h-2.5 w-full overflow-hidden rounded-full bg-surface-100">
+                    <div
+                      className={`h-full ${metodo.color} transition-all duration-1000 ease-out`}
+                      style={{ width: `${metodo.porcentaje}%` }}
+                    />
+                  </div>
+                  <p className="mt-1 text-right text-xs text-ink-500 font-medium">{metodo.value}</p>
+                </div>
+              ))}
+
+               <div className="mt-6 rounded-xl bg-gradient-to-br from-brand-50 to-indigo-50 p-3.5 border border-brand-100/50">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-full bg-white p-1.5 shadow-sm text-brand-600">
+                    <CreditCard className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-brand-900">Insight Financiero</h4>
+                    <p className="mt-1 text-xs leading-relaxed text-brand-700/80">
+                      El 52% de tus ingresos son en efectivo. Considera ofrecer promociones para transferencias digitales.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}

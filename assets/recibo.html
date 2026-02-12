@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Recibo de Cobro</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+
+    <style>
+        @page {
+
+            size: A4;
+
+            margin: 0;
+
+        }
+
+
+
+        * {
+
+            margin: 0;
+
+            padding: 0;
+
+            box-sizing: border-box;
+
+        }
+
+
+
+        body {
+
+            font-family: 'Source Sans 3', sans-serif;
+
+            width: 210mm;
+
+            height: 297mm;
+
+            margin: 0 auto;
+
+            background: white;
+
+            color: #000;
+
+        }
+
+
+
+        .recibo {
+
+            width: 100%;
+
+            height: 148.5mm;
+
+            padding: 10mm 14mm;
+
+            border-bottom: 1px dashed #000;
+
+            position: relative;
+
+        }
+
+
+
+        .recibo:last-child {
+
+            border-bottom: none;
+
+        }
+
+
+
+        /* Borde exterior minimalista */
+
+        .recibo::before {
+
+            content: '';
+
+            position: absolute;
+
+            top: 6mm;
+
+            left: 6mm;
+
+            right: 6mm;
+
+            bottom: 6mm;
+
+            border: 0.5px solid #e5e5e5;
+
+            pointer-events: none;
+
+        }
+
+
+
+        .header {
+
+            display: grid;
+
+            grid-template-columns: auto 1fr;
+
+            gap: 30px;
+
+            margin-bottom: 4px;
+
+            padding-bottom: 15px;
+
+            border-bottom: 1px solid #000;
+
+        }
+
+
+
+        .logo {
+
+            padding: 12px 20px;
+
+            text-align: center;
+
+            position: relative;
+
+            border: 1px solid #000;
+
+        }
+
+
+
+        .logo h1 {
+
+            font-family: 'Playfair Display', serif;
+
+            font-size: 17px;
+
+            font-weight: 600;
+
+            margin-bottom: 0;
+
+            line-height: 1.15;
+
+            letter-spacing: 4px;
+
+            color: #000;
+
+        }
+
+
+
+        .logo h2 {
+
+            font-family: 'Playfair Display', serif;
+
+            font-size: 24px;
+
+            font-weight: 500;
+
+            line-height: 1;
+
+            margin-top: 4px;
+
+            letter-spacing: 3px;
+
+            color: #000;
+
+        }
+
+
+
+        .logo-datos {
+
+            font-size: 8px;
+
+            font-weight: 300;
+
+            line-height: 1.5;
+
+            margin-top: 8px;
+
+            color: #333;
+
+        }
+
+
+
+        .info-derecha {
+
+            display: flex;
+
+            flex-direction: column;
+
+            justify-content: center;
+
+            padding-left: 15px;
+
+        }
+
+
+
+        .titulo {
+
+            font-family: 'Playfair Display', serif;
+
+            font-weight: 600;
+
+            font-size: 10px;
+
+            margin-bottom: 12px;
+
+            text-align: right;
+
+            letter-spacing: 2.5px;
+
+            text-transform: uppercase;
+
+        }
+
+
+
+        .numero,
+        .fecha {
+
+            font-size: 11px;
+
+            margin-bottom: 4px;
+
+            text-align: right;
+
+            font-weight: 400;
+
+            color: #333;
+
+        }
+
+
+
+        .numero span,
+        .fecha span {
+
+            font-weight: 600;
+
+            color: #000;
+
+        }
+
+
+
+        .datos-estudio {
+
+            margin-top: 4px;
+
+            padding-top: 0;
+
+            border-top: none;
+
+            text-align: right;
+
+        }
+
+
+
+        .datos-estudio p {
+
+            font-size: 9px;
+
+            margin-bottom: 2px;
+
+            line-height: 1.4;
+
+            font-weight: 300;
+
+            color: #333;
+
+        }
+
+
+
+        .datos-cliente {
+
+            margin: 2px 0;
+
+            padding: 2px 0;
+
+            border-top: 0.5px solid #e5e5e5;
+
+            border-bottom: 0.5px solid #e5e5e5;
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+        }
+
+
+
+        .cliente-izquierda {
+
+            font-size: 11px;
+
+            font-weight: 300;
+
+            color: #333;
+
+            margin: 0;
+
+        }
+
+
+
+        .cuit-derecha {
+
+            font-size: 11px;
+
+            font-weight: 300;
+
+            color: #333;
+
+            margin: 0;
+
+            text-align: right;
+
+        }
+
+
+
+        .datos-cliente-columna {
+
+            display: flex;
+
+            flex-direction: column;
+
+        }
+
+
+
+        .datos-cliente p {
+
+            font-size: 11px;
+
+            margin-bottom: 4px;
+
+            line-height: 1.7;
+
+            font-weight: 300;
+
+            color: #333;
+
+        }
+
+
+
+        .datos-cliente strong {
+
+            font-weight: 600;
+
+            color: #000;
+
+            display: inline-block;
+
+            min-width: 80px;
+
+        }
+
+
+
+        .monto {
+
+            margin: 12px 0;
+
+            padding: 16px 20px;
+
+            border: 2px solid #000;
+
+            text-align: center;
+
+            position: relative;
+
+        }
+
+
+
+        /* Esquinas decorativas */
+
+        .monto::before,
+
+        .monto::after {
+
+            content: '';
+
+            position: absolute;
+
+            width: 8px;
+
+            height: 8px;
+
+            border: 1px solid #000;
+
+        }
+
+
+
+        .monto::before {
+
+            top: -1px;
+
+            left: -1px;
+
+            border-right: none;
+
+            border-bottom: none;
+
+        }
+
+
+
+        .monto::after {
+
+            bottom: -1px;
+
+            right: -1px;
+
+            border-left: none;
+
+            border-top: none;
+
+        }
+
+
+
+        .monto p {
+
+            font-family: 'Playfair Display', serif;
+
+            font-size: 14px;
+
+            line-height: 1.4;
+
+            font-weight: 600;
+
+            letter-spacing: 1px;
+
+        }
+
+
+
+        .concepto {
+
+            margin: 2px 0 0 0;
+
+            padding: 0;
+
+        }
+
+
+
+        .concepto-header {
+
+            font-family: 'Playfair Display', serif;
+
+            font-size: 10px;
+
+            font-weight: 600;
+
+            margin-bottom: 0;
+
+            padding-bottom: 8px;
+
+            border-bottom: 1px solid #000;
+
+            letter-spacing: 2px;
+
+            text-transform: uppercase;
+
+        }
+
+
+
+        .concepto-table {
+
+            width: 100%;
+
+            border-collapse: collapse;
+
+        }
+
+
+
+        .concepto-table th {
+
+            font-family: 'Playfair Display', serif;
+
+            font-size: 9px;
+
+            font-weight: 600;
+
+            text-align: left;
+
+            padding: 8px 4px;
+
+            border-bottom: 1px solid #000;
+
+            letter-spacing: 1px;
+
+            text-transform: uppercase;
+
+        }
+
+
+
+        .concepto-table th:nth-child(3) {
+
+            text-align: right;
+
+        }
+
+
+
+        .concepto-table td {
+
+            font-size: 11px;
+
+            padding: 4px 4px;
+
+            border-bottom: 0.5px solid #e5e5e5;
+
+            font-weight: 300;
+
+            color: #333;
+
+        }
+
+
+
+        .concepto-table td:nth-child(3) {
+
+            text-align: right;
+
+            font-weight: 500;
+
+        }
+
+
+
+        .concepto-table tr:last-child td {
+
+            border-bottom: none;
+
+        }
+
+
+
+        .metodos-pago {
+
+            margin: 10px 0 40px 0;
+
+            padding: 0;
+
+        }
+
+
+
+        .metodos-pago-header {
+
+            font-family: 'Playfair Display', serif;
+
+            font-size: 10px;
+
+            font-weight: 600;
+
+            margin-bottom: 8px;
+
+            padding-bottom: 5px;
+
+            border-bottom: 1px solid #000;
+
+            letter-spacing: 2px;
+
+            text-transform: uppercase;
+
+        }
+
+
+
+        .metodos-pago-grid {
+
+            display: grid;
+
+            grid-template-columns: 1fr 1fr 1fr;
+
+            gap: 12px;
+
+        }
+
+
+
+        .metodo-pago-item {
+
+            display: flex;
+
+            flex-direction: column;
+
+        }
+
+
+
+        .metodo-pago-label {
+
+            font-size: 9px;
+
+            font-weight: 600;
+
+            text-transform: uppercase;
+
+            letter-spacing: 1px;
+
+            margin-bottom: 4px;
+
+            color: #000;
+
+        }
+
+
+
+        .metodo-pago-valor {
+
+            font-size: 11px;
+
+            font-weight: 500;
+
+            color: #333;
+
+        }
+
+
+
+        .cheques-container {
+
+            margin-top: 4px;
+
+            display: flex;
+
+            flex-wrap: wrap;
+
+            gap: 6px;
+
+        }
+
+
+
+        .cheque-item {
+
+            font-size: 9px;
+
+            font-weight: 300;
+
+            color: #333;
+
+        }
+
+
+
+        .firma-section {
+
+            margin-top: 50px;
+
+            display: grid;
+
+            grid-template-columns: 1fr;
+
+            gap: 15px;
+
+        }
+
+
+
+        .firma-box {
+
+            border-bottom: 1px solid #000;
+
+            padding: 12px 15px 5px 15px;
+
+            text-align: center;
+
+            min-height: 45px;
+
+        }
+
+
+
+        .firma-box p {
+
+            font-size: 9px;
+
+            font-weight: 500;
+
+            margin-top: 6px;
+
+            letter-spacing: 1.5px;
+
+            text-transform: uppercase;
+
+        }
+
+
+
+        /* Sello minimalista */
+
+        .sello {
+
+            position: absolute;
+
+            bottom: 10mm;
+
+            right: 10mm;
+
+            width: 45px;
+
+            height: 45px;
+
+            border: 1px solid #000;
+
+            border-radius: 50%;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            transform: rotate(-12deg);
+
+            opacity: 0.25;
+
+        }
+
+
+
+        .sello span {
+
+            font-family: 'Playfair Display', serif;
+
+            font-size: 7px;
+
+            font-weight: 700;
+
+            text-align: center;
+
+            line-height: 1.2;
+
+            letter-spacing: 0.5px;
+
+        }
+
+
+
+        @media print {
+
+            body {
+
+                margin: 0;
+
+            }
+
+
+
+            .recibo {
+
+                page-break-inside: avoid;
+
+            }
+
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <!-- ORIGINAL -->
+
+    <div class="recibo">
+
+        <div class="header">
+
+            <div class="logo">
+
+                <h1>ESTUDIO</h1>
+
+                <h1>CONTABLE</h1>
+
+                <h2>ALBÓNICO</h2>
+
+            </div>
+
+            <div class="info-derecha">
+
+                <p class="titulo">Recibo de Cobro — Original</p>
+
+                <p class="numero">Número: <span>0000 - 00001600</span></p>
+
+                <p class="fecha">Fecha: <span>04/02/2026</span></p>
+
+                <div class="datos-estudio">
+
+                    <p>San Martín 434</p>
+
+                    <p>2503 Villa Eloísa (Sta. Fe)</p>
+
+                    <p>Tel.: 03471-491404</p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="datos-cliente">
+
+            <p class="cliente-izquierda"><strong>Cliente:</strong> ACOSTA EDA</p>
+
+            <p class="cuit-derecha"><strong>CUIT:</strong> 27-20407767-9</p>
+
+        </div>
+
+        <div class="concepto">
+
+            <p class="concepto-header">CONCEPTO</p>
+
+            <table class="concepto-table">
+
+                <thead>
+
+                    <tr>
+
+                        <th style="width: 18%;">Periodo</th>
+
+                        <th style="width: 62%;">Concepto</th>
+
+                        <th style="width: 20%;">Importe</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    <tr>
+
+                        <td>01/2026</td>
+
+                        <td>HONORARIOS: ESKERE</td>
+
+                        <td>$ 123,00</td>
+
+                    </tr>
+
+                    <tr>
+
+                        <td>02/2026</td>
+
+                        <td>HONORARIOS: CONTABLE MENSUAL</td>
+
+                        <td>$ 85,00</td>
+
+                    </tr>
+
+                    <tr>
+
+                        <td>03/2026</td>
+
+                        <td>PRESENTACIÓN IVA</td>
+
+                        <td>$ 45,00</td>
+
+                    </tr>
+
+                    <tr>
+
+                        <td>04/2026</td>
+
+                        <td>HONORARIOS: GANANCIAS</td>
+
+                        <td>$ 150,00</td>
+
+                    </tr>
+
+                    <tr>
+
+                        <td>05/2026</td>
+
+                        <td>ACTUALIZACIÓN DE DATOS</td>
+
+                        <td>$ 60,00</td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        <div class="metodos-pago">
+
+            <p class="metodos-pago-header">FORMAS DE PAGO</p>
+
+            <div class="metodos-pago-grid">
+
+                <div class="metodo-pago-item">
+
+                    <span class="metodo-pago-label">Efectivo</span>
+
+                    <span class="metodo-pago-valor">$ 50,00</span>
+
+                </div>
+
+                <div class="metodo-pago-item">
+
+                    <span class="metodo-pago-label">Transferencia</span>
+
+                    <span class="metodo-pago-valor">$ 40,00</span>
+
+                </div>
+
+                <div class="metodo-pago-item">
+
+                    <span class="metodo-pago-label">Cheque/s</span>
+
+                    <span class="metodo-pago-valor">$ 33,00</span>
+
+                    <div class="cheques-container">
+
+                        <span class="cheque-item">Nº 00123456</span>
+
+                        <span class="cheque-item">Nº 00123457</span>
+
+                        <span class="cheque-item">Nº 00123458</span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="firma-section">
+
+            <div class="firma-box">
+
+                <p>Firma Estudio Contable Albónico</p>
+
+            </div>
+
+        </div>
+
+        <div class="sello">
+
+            <span>ORIGINAL</span>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- DUPLICADO -->
+
+    <div class="recibo">
+
+        <div class="header">
+
+            <div class="logo">
+
+                <h1>ESTUDIO</h1>
+
+                <h1>CONTABLE</h1>
+
+                <h2>ALBÓNICO</h2>
+
+            </div>
+
+            <div class="info-derecha">
+
+                <p class="titulo">Recibo de Cobro — Duplicado</p>
+
+                <p class="numero">Número: <span>0000 - 00001600</span></p>
+
+                <p class="fecha">Fecha: <span>04/02/2026</span></p>
+
+                <div class="datos-estudio">
+
+                    <p>San Martín 434</p>
+
+                    <p>2503 Villa Eloísa (Sta. Fe)</p>
+
+                    <p>Tel.: 03471-491404</p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="datos-cliente">
+
+            <p class="cliente-izquierda"><strong>Cliente:</strong> 15.004 ACOSTA EDA</p>
+
+            <p class="cuit-derecha"><strong>CUIT:</strong> 27-20407767-9</p>
+
+        </div>
+
+        <div class="concepto">
+
+            <p class="concepto-header">CONCEPTO</p>
+
+            <table class="concepto-table">
+
+                <thead>
+
+                    <tr>
+
+                        <th style="width: 18%;">Periodo</th>
+
+                        <th style="width: 62%;">Concepto</th>
+
+                        <th style="width: 20%;">Importe</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    <tr>
+
+                        <td>01/2026</td>
+
+                        <td>HONORARIOS: ESKERE</td>
+
+                        <td>$ 123,00</td>
+
+                    </tr>
+
+                    <tr>
+
+                        <td>02/2026</td>
+
+                        <td>HONORARIOS: CONTABLE MENSUAL</td>
+
+                        <td>$ 85,00</td>
+
+                    </tr>
+
+                    <tr>
+
+                        <td>03/2026</td>
+
+                        <td>PRESENTACIÓN IVA</td>
+
+                        <td>$ 45,00</td>
+
+                    </tr>
+
+                    <tr>
+
+                        <td>04/2026</td>
+
+                        <td>HONORARIOS: GANANCIAS</td>
+
+                        <td>$ 150,00</td>
+
+                    </tr>
+
+                    <tr>
+
+                        <td>05/2026</td>
+
+                        <td>ACTUALIZACIÓN DE DATOS</td>
+
+                        <td>$ 60,00</td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        <div class="metodos-pago">
+
+            <p class="metodos-pago-header">FORMAS DE PAGO</p>
+
+            <div class="metodos-pago-grid">
+
+                <div class="metodo-pago-item">
+
+                    <span class="metodo-pago-label">Efectivo</span>
+
+                    <span class="metodo-pago-valor">$ 50,00</span>
+
+                </div>
+
+                <div class="metodo-pago-item">
+
+                    <span class="metodo-pago-label">Transferencia</span>
+
+                    <span class="metodo-pago-valor">$ 40,00</span>
+
+                </div>
+
+                <div class="metodo-pago-item">
+
+                    <span class="metodo-pago-label">Cheque/s</span>
+
+                    <span class="metodo-pago-valor">$ 33,00</span>
+
+                    <div class="cheques-container">
+
+                        <span class="cheque-item">Nº 00123456</span>
+
+                        <span class="cheque-item">Nº 00123457</span>
+
+                        <span class="cheque-item">Nº 00123458</span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="firma-section">
+
+            <div class="firma-box">
+
+                <p>Firma Estudio Contable Albónico</p>
+
+            </div>
+
+        </div>
+
+        <div class="sello">
+
+            <span>DUPLICADO</span>
+
+        </div>
+
+    </div>
+
+</body>
+
+</html>

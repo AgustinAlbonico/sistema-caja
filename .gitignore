@@ -1,0 +1,25 @@
+# Dependencies
+**/node_modules/
+
+# Build outputs
+backend/dist/
+frontend/dist/
+coverage/
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# Local tooling and caches
+.ruff_cache/
+.sisyphus/
+.opencode/
+.claude/
+.clavix/
+
+# Local temp directories
+Temp/
+
+# Logs
+*.log
