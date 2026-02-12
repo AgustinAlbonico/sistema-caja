@@ -9,6 +9,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DataSource } from 'typeorm';
 import { appendFileSync } from 'fs';
+import { Client } from 'pg';
 
 // --- DEBUG LOGGING ---
 // Logger de emergencia pre-NestJS
@@ -57,7 +58,6 @@ import { AppModule } from './app.module';
 import { initializeDatabase } from './database/init-database';
 import { AppConfigService } from './common/config/app-config.service';
 import { loggerService } from './common/logger/logger.service';
-import { runSetupServer, testDatabaseConnection } from './setup-server';
 import { getLogsDirectoryPath } from './common/config/runtime-paths';
 
 /**
@@ -101,52 +101,40 @@ async function startNestApp(
   loggerService.log(`✅ Backend escuchando en ${url}`);
 }
 
-/**
- * Bootstrap de dos fases:
- * 1. Intenta conectar a PostgreSQL con la config actual
- * 2. Si falla → modo setup (servidor HTTP ligero sin TypeORM)
- * 3. Cuando el usuario configura la DB y llama /api/config/restart → re-carga config y arranca NestJS
- */
+async function testDatabaseConnection(config: {
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+  database: string;
+}): Promise<boolean> {
+  const client = new Client({
+    host: config.host,
+    port: config.port,
+    user: config.username,
+    password: config.password,
+    database: config.database,
+    connectionTimeoutMillis: 5000,
+  });
+
+  try {
+    await client.connect();
+    await client.query('SELECT 1');
+    await client.end();
+    return true;
+  } catch {
+    try {
+      await client.end();
+    } catch {
+      // ignore close error
+    }
+    return false;
+  }
+}
+
 async function bootstrap() {
   try {
-    const hasPersistedConfig = AppConfigService.configFileExists();
-
-    // Cargar (o crear) configuración desde %APPDATA%\sistema-caja\config.json
-    let appConfig = AppConfigService.loadConfig();
-
-    if (!hasPersistedConfig) {
-      console.log(
-        'ℹ️  Primera ejecución detectada (sin config.json). Entrando en MODO SETUP obligatorio...',
-      );
-      console.log(
-        '   Configure la IP fija del servidor de base de datos para esta PC.',
-      );
-
-      await runSetupServer(appConfig.host, appConfig.port);
-
-      console.log('🔄 Recargando configuración guardada por el setup...');
-      AppConfigService.resetConfig();
-      appConfig = AppConfigService.loadConfig();
-
-      console.log(
-        `🔍 Probando conexión a PostgreSQL ${appConfig.database.host}:${appConfig.database.port}/${appConfig.database.database}...`,
-      );
-      const setupDbOk = await testDatabaseConnection(appConfig.database);
-
-      if (!setupDbOk) {
-        console.error(
-          '❌ La conexión a PostgreSQL falló con la configuración ingresada en setup.',
-        );
-        console.error(
-          '   Verifique IP/puerto/usuario/contraseña y vuelva a intentar.',
-        );
-        process.exit(1);
-      }
-
-      console.log('✅ Conexión a PostgreSQL exitosa, arrancando NestJS...');
-      await startNestApp(appConfig);
-      return;
-    }
+    const appConfig = AppConfigService.loadConfig();
 
     // Probar conexión a la base de datos
     console.log(
@@ -160,37 +148,9 @@ async function bootstrap() {
       return;
     }
 
-    // La BD no está disponible → modo setup
-    console.log(
-      '⚠️  No se pudo conectar a PostgreSQL. Entrando en MODO SETUP...',
-    );
-    console.log('   El frontend mostrará la página de configuración.');
-
-    // Servidor liviano que espera hasta que el usuario configure y llame /api/config/restart
-    await runSetupServer(appConfig.host, appConfig.port);
-
-    // El usuario guardó la config y llamó restart → re-leer la config actualizada
-    console.log('🔄 Recargando configuración...');
-    AppConfigService.resetConfig();
-    appConfig = AppConfigService.loadConfig();
-
-    console.log(
-      `🔍 Re-probando conexión a PostgreSQL ${appConfig.database.host}:${appConfig.database.port}/${appConfig.database.database}...`,
-    );
-    const dbOkRetry = await testDatabaseConnection(appConfig.database);
-
-    if (!dbOkRetry) {
-      console.error(
-        '❌ La conexión a PostgreSQL sigue fallando después de la configuración.',
-      );
-      console.error(
-        '   El backend se cerrará. Verifique los datos de conexión e intente de nuevo.',
-      );
-      process.exit(1);
-    }
-
-    console.log('✅ Conexión a PostgreSQL exitosa, arrancando NestJS...');
-    await startNestApp(appConfig);
+    console.error('❌ No se pudo conectar a PostgreSQL con la configuración actual.');
+    console.error('   Verifique C:\\SistemaCajaEstudio\\config\\.env y sincronice config.json.');
+    process.exit(1);
   } catch (err: unknown) {
     const error = err instanceof Error ? err : new Error(String(err));
     loggerService.error(
