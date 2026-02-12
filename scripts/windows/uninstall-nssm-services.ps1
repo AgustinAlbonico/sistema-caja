@@ -7,9 +7,15 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+$principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    throw 'Ejecuta uninstall-nssm-services.ps1 en PowerShell como Administrador.'
+}
+
 . "$PSScriptRoot\services-common.ps1"
 
 $nssmExe = Resolve-NssmExecutable -RuntimeRoot $RuntimeRoot -NssmPath $NssmPath
+$nssmExe = Resolve-NssmServiceBinaryPath -RuntimeRoot $RuntimeRoot -NssmExe $nssmExe
 
 foreach ($serviceName in @($BackendServiceName, $FrontendServiceName)) {
     $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue

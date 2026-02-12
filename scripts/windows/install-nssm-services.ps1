@@ -9,6 +9,11 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+$principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    throw 'Ejecuta install-nssm-services.ps1 en PowerShell como Administrador.'
+}
+
 . "$PSScriptRoot\services-common.ps1"
 . "$PSScriptRoot\runtime-env.ps1"
 
@@ -27,6 +32,7 @@ if ($envFrontendPort) {
 }
 
 $nssmExe = Resolve-NssmExecutable -RuntimeRoot $RuntimeRoot -NssmPath $NssmPath
+$nssmExe = Resolve-NssmServiceBinaryPath -RuntimeRoot $RuntimeRoot -NssmExe $nssmExe
 $nodeExe = Resolve-NodeExecutable -RuntimeRoot $RuntimeRoot
 
 $backendDir = Join-Path $RuntimeRoot 'current\backend'
@@ -58,6 +64,28 @@ if (-not (Test-Path -LiteralPath $frontendScript)) {
 
 $backendArgs = "`"$backendScript`""
 $frontendArgs = "`"$frontendScript`" preview --host 127.0.0.1 --port $FrontendPort --strictPort"
+
+function Ensure-ServiceAbsent {
+    param(
+        [Parameter(Mandatory = $true)][string]$ServiceName,
+        [Parameter(Mandatory = $true)][string]$NssmExePath
+    )
+
+    $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+    if ($null -eq $service) {
+        return
+    }
+
+    if ($service.Status -ne 'Stopped') {
+        Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 1
+    }
+
+    Invoke-Nssm -NssmExe $NssmExePath -Arguments @('remove', $ServiceName, 'confirm')
+}
+
+Ensure-ServiceAbsent -ServiceName $BackendServiceName -NssmExePath $nssmExe
+Ensure-ServiceAbsent -ServiceName $FrontendServiceName -NssmExePath $nssmExe
 
 Invoke-Nssm -NssmExe $nssmExe -Arguments @('install', $BackendServiceName, $nodeExe, $backendArgs)
 Invoke-Nssm -NssmExe $nssmExe -Arguments @('set', $BackendServiceName, 'AppDirectory', $backendDir)

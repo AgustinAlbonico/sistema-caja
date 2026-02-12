@@ -34,6 +34,11 @@ foreach ($item in $itemsToCopy) {
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'create-shortcuts.ps1') -RuntimeRoot $RuntimeRoot
 
 if ($InstallServices) {
+    $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        throw 'Para usar -InstallServices, ejecuta install-client-runtime.ps1 en PowerShell como Administrador.'
+    }
+
     $installServicesScript = Join-Path $PSScriptRoot 'install-nssm-services.ps1'
     $servicesArgs = @(
         '-NoProfile',

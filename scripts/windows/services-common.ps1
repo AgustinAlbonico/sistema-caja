@@ -43,6 +43,35 @@ function Resolve-NssmExecutable {
     throw 'No se encontro nssm.exe. Copia nssm.exe a runtime\scripts\tools\ o agrega nssm al PATH.'
 }
 
+function Resolve-NssmServiceBinaryPath {
+    param(
+        [Parameter(Mandatory = $true)][string]$RuntimeRoot,
+        [Parameter(Mandatory = $true)][string]$NssmExe
+    )
+
+    $sourcePath = $NssmExe
+    $item = Get-Item -LiteralPath $NssmExe -ErrorAction SilentlyContinue
+    if ($null -ne $item -and $item.LinkType -eq 'SymbolicLink' -and $item.Target) {
+        $targetPath = if ($item.Target -is [array]) { [string]$item.Target[0] } else { [string]$item.Target }
+        if ($targetPath) {
+            $sourcePath = $targetPath
+        }
+    }
+
+    if ($sourcePath -like 'C:\Users\*') {
+        $toolsDir = Join-Path $RuntimeRoot 'scripts\tools'
+        if (-not (Test-Path -LiteralPath $toolsDir)) {
+            New-Item -ItemType Directory -Path $toolsDir -Force | Out-Null
+        }
+
+        $runtimeNssm = Join-Path $toolsDir 'nssm.exe'
+        Copy-Item -LiteralPath $sourcePath -Destination $runtimeNssm -Force
+        return $runtimeNssm
+    }
+
+    return $NssmExe
+}
+
 function Invoke-Nssm {
     param(
         [Parameter(Mandatory = $true)][string]$NssmExe,
