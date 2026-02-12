@@ -52,7 +52,6 @@ export class AppConfigService {
 
   /**
    * Lee el archivo config.json desde APP_CONFIG_PATH o runtime central.
-   * Si no existe, usa valores por defecto para desarrollo
    */
   static loadConfig(): AppConfig {
     if (this.config) {
@@ -62,20 +61,13 @@ export class AppConfigService {
     const configFilePath = this.resolveReadableConfigFilePath();
 
     if (!configFilePath) {
-      console.warn(
-        '⚠️  Archivo config.json no encontrado en rutas central/legacy, usando configuración por defecto en memoria...',
+      throw new Error(
+        'Archivo config.json no encontrado en rutas central/legacy. Configure C:\\SistemaCajaEstudio\\config\\.env y sincronice la configuración antes de iniciar el backend.',
       );
-      console.warn(
-        '   El frontend debería mostrar la página de configuración inicial.',
-      );
-      this.config = this.getDefaultConfig();
-      return this.config;
     }
 
     console.log(`📁 Intentando leer configuración desde: ${configFilePath}`);
 
-    // Si el archivo no existe, usar defaults en memoria (NO escribir a disco)
-    // para que el frontend detecte la primera ejecución y muestre la página de setup
     // Leer y parsear el archivo existente
     try {
       const fileContent = fs.readFileSync(configFilePath, 'utf-8');
@@ -106,30 +98,6 @@ export class AppConfigService {
   }
 
   /**
-   * Retorna la configuración por defecto (sin escribir a disco).
-   * Usada en primera ejecución cuando no existe config.json.
-   */
-  private static getDefaultConfig(): AppConfig {
-    return {
-      port: 47832,
-      host: '127.0.0.1',
-      database: {
-        host: '127.0.0.1',
-        port: 5432,
-        username: 'postgres',
-        password: 'postgres',
-        database: 'db_sistema_recibos',
-      },
-      jwt: {
-        secret: 'ferchu123',
-        expiration: '7d',
-      },
-      schemaVersion: '1.0.0',
-      frontendUrl: 'http://127.0.0.1:5173',
-    };
-  }
-
-  /**
    * Obtiene la configuración actual (debe llamarse loadConfig() primero)
    */
   static getConfig(): AppConfig {
@@ -143,7 +111,6 @@ export class AppConfigService {
 
   /**
    * Limpia la configuración cacheada para forzar re-lectura desde disco.
-   * Usado después de que el usuario guarda nuevos datos en el setup.
    */
   static resetConfig(): void {
     this.config = null;

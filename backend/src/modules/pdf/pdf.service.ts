@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   OnModuleInit,
   OnModuleDestroy,
   InternalServerErrorException,
@@ -11,10 +12,19 @@ import { CajaDiaria } from '../../database/entities/caja-diaria.entity';
 
 @Injectable()
 export class PdfService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(PdfService.name);
   private browser: Browser | null = null;
 
   async onModuleInit() {
-    await this.initBrowser();
+    try {
+      await this.initBrowser();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(
+        `No se pudo inicializar Chromium al arrancar. El backend sigue operativo y reintentara al generar PDF. Detalle: ${message}`,
+      );
+      this.browser = null;
+    }
   }
 
   async onModuleDestroy() {
