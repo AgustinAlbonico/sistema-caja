@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useBackendHealth } from '../hooks/useBackendHealth'
-import { useAppConfig } from '../hooks/useAppConfig'
 
 interface SystemInfo {
   appRuntime?: string
@@ -13,7 +12,6 @@ interface SystemInfo {
  */
 export function DiagnosticsPage() {
   const { health, loading, checkHealth } = useBackendHealth(10000)
-  const { config, loading: configLoading } = useAppConfig()
   const [systemInfo, setSystemInfo] = useState<SystemInfo>({})
   const [logs, setLogs] = useState<string[]>([])
   const [logsLoading, setLogsLoading] = useState(false)
@@ -162,74 +160,19 @@ export function DiagnosticsPage() {
               Configuración
             </h2>
 
-            {configLoading ? (
-              <div className="flex items-center justify-center h-32">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              </div>
-            ) : config ? (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Host de Base de Datos
-                  </label>
-                  <input
-                    type="text"
-                    value={config.database.host}
-                    readOnly
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Puerto
-                    </label>
-                    <input
-                      type="text"
-                      value={config.database.port}
-                      readOnly
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Base de Datos
-                    </label>
-                    <input
-                      type="text"
-                      value={config.database.database}
-                      readOnly
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Usuario
-                  </label>
-                  <input
-                    type="text"
-                    value={config.database.username}
-                    readOnly
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
-                  />
-                </div>
-
-                <button
-                  onClick={() => (window.location.href = '/setup')}
-                  className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-lg transition-colors"
-                >
-                  Modificar Configuración
-                </button>
-              </div>
-            ) : (
-                <div className="text-center text-gray-500 py-6">
-                  <p>No se pudo cargar la configuración</p>
-                </div>
-              )}
+            <div className="space-y-3 text-sm text-gray-700">
+              <p>
+                La configuración del sistema se administra fuera de la app desde
+                el archivo:
+              </p>
+              <p className="font-mono rounded bg-gray-100 px-3 py-2 text-xs md:text-sm">
+                C:\SistemaCajaEstudio\config\.env
+              </p>
+              <p>
+                Después de cambiar valores de base de datos o JWT, reinicie el
+                sistema para aplicar cambios.
+              </p>
+            </div>
           </div>
         </div>
 
