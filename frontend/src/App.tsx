@@ -19,7 +19,6 @@ import { ReportesPage } from './pages/ReportesPage'
 import { AuditoriaPage } from './pages/AuditoriaPage'
 import { MetodosPagoPage } from './pages/MetodosPagoPage'
 import { LoginPage } from './pages/LoginPage'
-import { SetupConfigPage } from './pages/SetupConfigPage'
 
 function App() {
   return (
@@ -28,9 +27,6 @@ function App() {
         <ConfigCheck>
           <Toaster position="top-right" richColors />
           <Routes>
-            {/* Ruta de configuración inicial */}
-            <Route path="/setup" element={<SetupConfigPage />} />
-
             {/* Ruta de error de base de datos */}
             <Route path="/database-error" element={<DatabaseErrorPage />} />
 
