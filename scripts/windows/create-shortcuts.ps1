@@ -19,9 +19,12 @@ function New-HiddenWrapper {
         [string]$Arguments
     )
 
+    # Escapar comillas dobles para VBScript ( " -> "" )
+    $EscapedArguments = $Arguments -replace '"', '""'
+
     $content = @"
 Set shell = CreateObject("WScript.Shell")
-shell.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""$ScriptPath"" $Arguments", 0, False
+shell.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""$ScriptPath"" $EscapedArguments", 0, False
 "@
 
     Set-Content -LiteralPath $WrapperPath -Encoding ASCII -Value $content
@@ -31,7 +34,8 @@ function New-Shortcut {
     param(
         [string]$ShortcutPath,
         [string]$TargetPath,
-        [string]$Description
+        [string]$Description,
+        [string]$IconLocation = ''
     )
 
     $shell = New-Object -ComObject WScript.Shell
@@ -39,6 +43,11 @@ function New-Shortcut {
     $shortcut.TargetPath = $TargetPath
     $shortcut.WorkingDirectory = Split-Path -Path $TargetPath -Parent
     $shortcut.Description = $Description
+    
+    if ($IconLocation) {
+        $shortcut.IconLocation = $IconLocation
+    }
+    
     $shortcut.Save()
 }
 
@@ -65,7 +74,7 @@ Remove-FileIfExists -Path (Join-Path $wrappersDir 'probar-db.vbs')
 
 New-HiddenWrapper -WrapperPath $wrapperStart -ScriptPath (Join-Path $scriptsDir 'start-system.ps1') -Arguments "-RuntimeRoot `"$RuntimeRoot`""
 
-New-Shortcut -ShortcutPath (Join-Path $DesktopPath 'Sistema Caja - Iniciar.lnk') -TargetPath $wrapperStart -Description 'Inicia backend y frontend del sistema'
+New-Shortcut -ShortcutPath (Join-Path $DesktopPath 'Sistema Caja - Iniciar.lnk') -TargetPath $wrapperStart -Description 'Inicia backend y frontend del sistema' -IconLocation 'SHELL32.dll,16'
 
 Remove-FileIfExists -Path (Join-Path $DesktopPath 'Sistema Caja - Detener.lnk')
 Remove-FileIfExists -Path (Join-Path $DesktopPath 'Sistema Caja - Actualizar.lnk')

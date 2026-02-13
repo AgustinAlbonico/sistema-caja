@@ -28,7 +28,9 @@ $filesToCopy = @(
     'check-update.ps1',
     'apply-update.ps1',
     'run-update.ps1',
-    'create-shortcuts.ps1'
+    'create-shortcuts.ps1',
+    'check-db-connection.ps1',
+    'fix-permissions.ps1'
 )
 
 foreach ($file in $filesToCopy) {

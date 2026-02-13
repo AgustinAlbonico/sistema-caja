@@ -51,6 +51,10 @@ if (-not (Test-Path -LiteralPath $logsDir)) {
     New-Item -ItemType Directory -Path $logsDir -Force | Out-Null
 }
 
+# Dar permisos de escritura al usuario del servicio (LocalService)
+& icacls "$logsDir" /grant "NT AUTHORITY\LocalService:(OI)(CI)F" /T
+& icacls "$RuntimeRoot" /grant "NT AUTHORITY\LocalService:(OI)(CI)RX"
+
 $backendScript = Join-Path $backendDir 'dist\main.js'
 $frontendScript = Join-Path $frontendDir 'node_modules\vite\bin\vite.js'
 

@@ -1,4 +1,6 @@
-# 🖥️ Guía de Instalación del Sistema en PC Cliente
+# Guía de Instalación del Sistema en PC Cliente
+
+Esta guía describe cómo instalar el sistema en una PC cliente utilizando el método de **Ejecución Directa**, el cual es más robusto y evita problemas de permisos comunes con servicios de Windows.
 
 ## 📋 Requisitos Previos
 
@@ -25,8 +27,8 @@ Copia la carpeta completa del proyecto al equipo cliente. Debe contener:
 Abre **PowerShell como Administrador** en el equipo cliente, navega a la carpeta del proyecto y ejecuta:
 
 ```powershell
-cd "C:\ruta\al\proyecto"
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\install-client-runtime.ps1 -InstallServices
+cd "c:\Users\AgustinNotebook\Desktop\sistema caja\sistema-caja"
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\install-client-runtime.ps1
 ```
 
 **Este script hace automáticamente:**
@@ -34,8 +36,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\install-cl
 - ✅ Copia `backend/` y `frontend/` a `C:\SistemaCajaEstudio\current\`
 - ✅ Copia los scripts a `C:\SistemaCajaEstudio\scripts\`
 - ✅ Crea template de configuración en `C:\SistemaCajaEstudio\config\.env`
-- ✅ Instala servicios de Windows: `SistemaCajaBackend` y `SistemaCajaFrontend`
-- ✅ Crea acceso directo en el escritorio: **"Sistema Caja - Iniciar"**
+- ✅ Crea acceso directo en el escritorio: **"Sistema Caja - Iniciar"** con icono personalizado
+- ❌ **NO instala servicios de Windows** (para evitar problemas de permisos)
 
 ---
 
@@ -45,6 +47,14 @@ Abre el archivo de configuración:
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File C:\SistemaCajaEstudio\scripts\open-db-config.ps1
 ```
+
+**⚠️ MUY IMPORTANTE: VERIFICAR CONEXIÓN**
+Una vez configurado el archivo `.env`, ejecuta este script para verificar que la PC cliente ve al servidor:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File C:\SistemaCajaEstudio\scripts\check-db-connection.ps1
+```
+Si este paso falla (letras rojas), **EL SISTEMA NO FUNCIONARÁ**. Revisa IP, puerto y firewall.
 
 O manualmente: abre `C:\SistemaCajaEstudio\config\.env` con el Bloc de Notas
 
@@ -96,8 +106,9 @@ Doble clic en el acceso directo **"Sistema Caja - Iniciar"** en el escritorio
 **Esto hace:**
 - Sincroniza configuración de `.env` → `config.json`
 - Intenta actualizar desde GitHub (si está configurado)
-- Inicia el servicio backend
-- Inicia el servicio frontend
+- Intenta actualizar desde GitHub (si está configurado)
+- Inicia el **backend** en segundo plano
+- Inicia el **frontend** en segundo plano
 - Abre el navegador en `http://127.0.0.1:5173`
 
 ---
@@ -107,9 +118,9 @@ Doble clic en el acceso directo **"Sistema Caja - Iniciar"** en el escritorio
 Verifica que todo esté funcionando:
 
 ```powershell
-# Ver estado de los servicios
-Get-Service SistemaCajaBackend
-Get-Service SistemaCajaFrontend
+# Ver procesos corriendo (backend y frontend)
+Get-Process node
+Get-Process cmd
 
 # Ver puertos
 Test-NetConnection -ComputerName 127.0.0.1 -Port 47832  # Backend
@@ -128,6 +139,7 @@ curl http://127.0.0.1:47832/api/health
   ```powershell
   powershell -NoProfile -ExecutionPolicy Bypass -File C:\SistemaCajaEstudio\scripts\stop-system.ps1
   ```
+- **Nota:** Al ser ejecución directa, si reinicias la PC debes volver a iniciar el sistema manualmente con el icono.
 
 ---
 
@@ -175,7 +187,7 @@ Cada vez que inicias el sistema, verifica si hay una nueva versión y la aplica 
 
 **❌ Backend no levanta:**
 - Revisar `C:\SistemaCajaEstudio\logs\backend-service-error.log`
-- Verificar conexión a PostgreSQL: `DB_HOST`, `DB_PORT`, credenciales
+- Verificar conexión a PostgreSQL: Ejecutar script `check-db-connection.ps1` (ver Scripts Útiles)
 
 **❌ Frontend no levanta:**
 - Revisar `C:\SistemaCajaEstudio\logs\frontend-service-error.log`
@@ -213,6 +225,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File C:\SistemaCajaEstudio\script
 **Configurar DB por CLI:**
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File C:\SistemaCajaEstudio\scripts\set-db-config.ps1 -Host 192.168.1.10 -Port 5432 -Username postgres -Database sistema_caja -RestartBackend
+```
+
+**Verificar conexión a Base de Datos:**
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File C:\SistemaCajaEstudio\scripts\check-db-connection.ps1
 ```
 
 ---
