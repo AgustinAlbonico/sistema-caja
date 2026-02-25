@@ -59,6 +59,11 @@ export function ConfigCheck({ children }: { children: React.ReactNode }) {
       }
     }
 
+    if (location.pathname === '/health') {
+      setChecking(false)
+      return
+    }
+
     checkConfig()
   }, [navigate, location.pathname])
 

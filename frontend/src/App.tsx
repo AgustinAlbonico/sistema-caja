@@ -10,6 +10,7 @@ import { RecibosAccessGuard } from './components/RecibosAccessGuard'
 import { CajaAutoCloseNotification } from './components/CajaAutoCloseNotification'
 import { DatabaseErrorPage } from './pages/DatabaseErrorPage'
 import { DiagnosticsPage } from './pages/DiagnosticsPage'
+import { HealthPage } from './pages/HealthPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { ClientesPage } from './pages/ClientesPage'
 import { CajaPage } from './pages/CajaPage'
@@ -29,6 +30,9 @@ function App() {
           <Routes>
             {/* Ruta de error de base de datos */}
             <Route path="/database-error" element={<DatabaseErrorPage />} />
+
+            {/* Ruta pública de health */}
+            <Route path="/health" element={<HealthPage />} />
 
             {/* Ruta pública de login */}
             <Route path="/login" element={<LoginPage />} />
