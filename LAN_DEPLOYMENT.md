@@ -115,6 +115,14 @@ powershell -ExecutionPolicy Bypass -File .\scripts\windows\install-shortcut.ps1 
 
 Se crea `Sistema Caja Estudio.lnk`.
 
+Por defecto el acceso directo ejecuta el launcher en modo oculto (sin consola visible).
+
+Si queres un acceso directo con consola visible para debug:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\windows\install-shortcut.ps1 -ShowConsole
+```
+
 ---
 
 ## 5) Comportamiento del icono

@@ -1,6 +1,7 @@
 param(
   [string]$ShortcutName = 'Sistema Caja Estudio',
-  [switch]$AllUsersDesktop
+  [switch]$AllUsersDesktop,
+  [switch]$ShowConsole
 )
 
 $ErrorActionPreference = 'Stop'
@@ -45,7 +46,8 @@ function New-LauncherShortcut {
     [Parameter(Mandatory = $true)][string]$DesktopPath,
     [Parameter(Mandatory = $true)][string]$ShortcutName,
     [Parameter(Mandatory = $true)][string]$LauncherScriptPath,
-    [Parameter(Mandatory = $true)][string]$WorkingDirectory
+    [Parameter(Mandatory = $true)][string]$WorkingDirectory,
+    [Parameter(Mandatory = $true)][bool]$ShowConsole
   )
 
   if (-not (Test-Path -LiteralPath $LauncherScriptPath)) {
@@ -58,11 +60,18 @@ function New-LauncherShortcut {
   try {
     $shortcut = $shell.CreateShortcut($shortcutPath)
     $shortcut.TargetPath = Resolve-PowerShellExecutable
-    $shortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$LauncherScriptPath`""
+
+    if ($ShowConsole) {
+      $shortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$LauncherScriptPath`""
+      $shortcut.WindowStyle = 1
+    } else {
+      $shortcut.Arguments = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$LauncherScriptPath`""
+      $shortcut.WindowStyle = 7
+    }
+
     $shortcut.WorkingDirectory = $WorkingDirectory
     $shortcut.IconLocation = "$env:SystemRoot\System32\shell32.dll,176"
     $shortcut.Description = 'Inicia backend + frontend y abre Sistema Caja Estudio'
-    $shortcut.WindowStyle = 1
     $shortcut.Save()
   } finally {
     [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($shell)
@@ -79,10 +88,14 @@ try {
   Ensure-LauncherEnv -ScriptsDir $scriptsDir
 
   $desktopPath = Get-DesktopPath -AllUsers:$AllUsersDesktop.IsPresent
-  $shortcutPath = New-LauncherShortcut -DesktopPath $desktopPath -ShortcutName $ShortcutName -LauncherScriptPath $launcherScriptPath -WorkingDirectory $repoRoot
+  $shortcutPath = New-LauncherShortcut -DesktopPath $desktopPath -ShortcutName $ShortcutName -LauncherScriptPath $launcherScriptPath -WorkingDirectory $repoRoot -ShowConsole:$ShowConsole.IsPresent
 
   Write-Host "Acceso directo creado: $shortcutPath"
-  Write-Host 'Listo. Doble clic sobre el icono para iniciar el sistema.'
+  if ($ShowConsole) {
+    Write-Host 'Listo. El acceso directo abrira consola visible para diagnostico.'
+  } else {
+    Write-Host 'Listo. El acceso directo se ejecuta sin mostrar consola.'
+  }
 } catch {
   Write-Host "Error al crear acceso directo: $($_.Exception.Message)" -ForegroundColor Red
   exit 1

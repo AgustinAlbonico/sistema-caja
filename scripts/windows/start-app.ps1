@@ -338,7 +338,5 @@ try {
   exit 0
 } catch {
   Write-LauncherLog -Level 'ERROR' -Message $_.Exception.Message
-  Write-Host 'Presione Enter para cerrar esta ventana...' -ForegroundColor Red
-  [void][System.Console]::ReadLine()
   exit 1
 }
