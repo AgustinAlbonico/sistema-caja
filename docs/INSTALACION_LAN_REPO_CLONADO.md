@@ -126,7 +126,56 @@ npm install --prefix .\frontend
 
 ---
 
-## 7) Levantar backend + frontend juntos
+## 7) Generar el icono en la PC cliente (recomendado)
+
+Si queres que el cliente use un icono de escritorio (sin abrir consolas), usa este flujo.
+
+### 7.1 Instalacion runtime que crea el icono automaticamente
+
+Desde la raiz del repo en la PC cliente:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\install-client-runtime.ps1 -RuntimeRoot "C:\SistemaCajaEstudio"
+```
+
+Este comando:
+
+- Copia backend/frontend al runtime (`C:\SistemaCajaEstudio\current\`)
+- Copia scripts al runtime (`C:\SistemaCajaEstudio\scripts\`)
+- Ejecuta `create-shortcuts.ps1`
+- Crea el icono de escritorio: `Sistema Caja - Iniciar.lnk`
+
+### 7.2 Si el icono no aparece en el escritorio del usuario correcto
+
+En algunos casos el script se ejecuta con otro usuario (por ejemplo, Administrador) y crea el acceso directo en otro Desktop.
+
+Forza el escritorio destino:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\create-shortcuts.ps1 -RuntimeRoot "C:\SistemaCajaEstudio" -DesktopPath "C:\Users\NOMBRE_USUARIO\Desktop"
+```
+
+Resultado esperado:
+
+- Archivo `.lnk` en `C:\Users\NOMBRE_USUARIO\Desktop\Sistema Caja - Iniciar.lnk`
+- Wrapper VBS en `C:\SistemaCajaEstudio\scripts\wrappers\iniciar-sistema.vbs`
+
+### 7.3 Doble clic para iniciar
+
+El cliente solo debe hacer doble clic en `Sistema Caja - Iniciar`.
+Ese icono ejecuta el arranque oculto del sistema, levanta backend + frontend y abre navegador automaticamente.
+
+---
+
+## 8) Levantar backend + frontend juntos (modo repo clonado, sin runtime)
+
+Si en este modo tambien queres icono local de desarrollo, puedes crearlo con:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\create-dev-shortcut.ps1 -ProjectRoot "C:\Sistema caja estudio"
+```
+
+Esto crea `Sistema Caja - Iniciar (Local).lnk` en el escritorio del usuario actual.
 
 Desde la raiz del repo, en cada cliente:
 
@@ -150,9 +199,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\start-dev-
 
 ---
 
-## 8) Verificar estado completo (front + back + DB)
+## 9) Verificar estado completo (front + back + DB)
 
-### 8.1 Ruta de salud en frontend
+### 9.1 Ruta de salud en frontend
 
 Abrir manualmente en navegador:
 
@@ -166,7 +215,7 @@ Debes ver 3 tarjetas:
 - Backend: OK
 - Base de datos: OK
 
-### 8.2 Verificacion backend directa
+### 9.2 Verificacion backend directa
 
 ```powershell
 curl -4 http://127.0.0.1:47832/api/health
@@ -176,7 +225,7 @@ El JSON debe indicar `status: ok` y `database.status: connected`.
 
 ---
 
-## 9) Crear usuarios iniciales (una sola vez por base)
+## 10) Crear usuarios iniciales (una sola vez por base)
 
 Si la base esta vacia, corre este seed **una sola vez** desde cualquier cliente:
 
@@ -198,9 +247,13 @@ Usuarios creados/actualizados:
 
 ---
 
-## 10) Operacion diaria
+## 11) Operacion diaria
 
-### Iniciar
+### Iniciar (con icono recomendado)
+
+Doble clic en `Sistema Caja - Iniciar` del escritorio.
+
+### Iniciar (alternativa por script)
 
 ```powershell
 Set-Location "C:\Sistema caja estudio"
@@ -216,7 +269,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\stop-dev-l
 
 ---
 
-## 11) Troubleshooting rapido
+## 12) Troubleshooting rapido
 
 ### Backend no conecta a DB
 
@@ -238,6 +291,22 @@ Test-NetConnection -ComputerName 127.0.0.1 -Port 47832
 
 - Revisa consola donde se levanto `start-dev-lan.ps1`
 
+### No se crea el icono en el escritorio
+
+- Ejecuta instalacion runtime:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\install-client-runtime.ps1 -RuntimeRoot "C:\SistemaCajaEstudio"
+```
+
+- Si sigue sin aparecer, fuerza escritorio objetivo:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\create-shortcuts.ps1 -RuntimeRoot "C:\SistemaCajaEstudio" -DesktopPath "C:\Users\NOMBRE_USUARIO\Desktop"
+```
+
+- Verifica que exista `C:\SistemaCajaEstudio\scripts\wrappers\iniciar-sistema.vbs`.
+
 ### `/health` muestra Base de datos Error
 
 - Backend levanto, pero no logra `SELECT 1` contra PostgreSQL.
@@ -247,6 +316,11 @@ Test-NetConnection -ComputerName 127.0.0.1 -Port 47832
 
 ## Archivos clave
 
+- `scripts/windows/install-client-runtime.ps1`
+- `scripts/windows/create-shortcuts.ps1`
+- `scripts/windows/start-system.ps1`
+- `scripts/windows/create-dev-shortcut.ps1`
+- `scripts/windows/start-dev-hidden.ps1`
 - `scripts/windows/start-dev-lan.ps1`
 - `scripts/windows/stop-dev-lan.ps1`
 - `backend/.env`
