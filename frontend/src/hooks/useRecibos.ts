@@ -6,12 +6,12 @@ export interface ReciboItem {
   descripcion: string
   mesComprobante: number
   anioComprobante: number
-  importe: number
+  importe: string
 }
 
 export interface ReciboPago {
   idMetodoPago: number
-  importe: number
+  importe: string
   numerosCheque?: string
 }
 

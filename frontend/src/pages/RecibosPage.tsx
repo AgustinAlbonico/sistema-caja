@@ -200,11 +200,11 @@ export function RecibosPage() {
     }
   }
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: string | number) => {
     return new Intl.NumberFormat('es-AR', {
       style: 'currency',
       currency: 'ARS',
-    }).format(amount)
+    }).format(Number(amount))
   }
 
   return (

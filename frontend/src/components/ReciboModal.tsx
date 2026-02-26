@@ -98,11 +98,11 @@ export function ReciboModal({
                 descripcion: linea.descripcion,
                 mesComprobante: linea.mesComprobante,
                 anioComprobante: linea.anioComprobante,
-                importe: Number(linea.importe),
+                importe: String(linea.importe),
             })),
             pagos: pagos.map((pago) => ({
                 idMetodoPago: pago.idMetodoPago,
-                importe: Number(pago.importe),
+                importe: String(pago.importe),
                 numerosCheque: pago.numerosCheque || undefined,
             })),
         }
