@@ -116,15 +116,64 @@ function Wait-Port {
 }
 
 function Resolve-Runner {
-  if (Get-Command bun -ErrorAction SilentlyContinue) {
-    return 'bun'
-  }
-
   if (Get-Command npm -ErrorAction SilentlyContinue) {
     return 'npm'
   }
 
-  throw 'No se encontro bun ni npm instalados en PATH.'
+  if (Get-Command bun -ErrorAction SilentlyContinue) {
+    return 'bun'
+  }
+
+  throw 'No se encontro npm ni bun instalados en PATH.'
+}
+
+function ConvertTo-Bool {
+  param(
+    [Parameter(Mandatory = $true)][string]$Value,
+    [bool]$Default = $false
+  )
+
+  $normalized = $Value.Trim().ToLowerInvariant()
+  if (@('1', 'true', 'yes', 'y', 'on', 'si', 's') -contains $normalized) {
+    return $true
+  }
+
+  if (@('0', 'false', 'no', 'n', 'off') -contains $normalized) {
+    return $false
+  }
+
+  return $Default
+}
+
+function Get-RunArguments {
+  param(
+    [Parameter(Mandatory = $true)][string]$ScriptName,
+    [string[]]$ScriptArgs = @()
+  )
+
+  if ($ScriptArgs.Count -gt 0) {
+    return @('run', $ScriptName, '--') + $ScriptArgs
+  }
+
+  return @('run', $ScriptName)
+}
+
+function Invoke-RunAndWait {
+  param(
+    [Parameter(Mandatory = $true)][string]$Runner,
+    [Parameter(Mandatory = $true)][string]$WorkingDirectory,
+    [Parameter(Mandatory = $true)][string]$ScriptName,
+    [string[]]$ScriptArgs = @(),
+    [Parameter(Mandatory = $true)][string]$TaskName
+  )
+
+  $runArguments = Get-RunArguments -ScriptName $ScriptName -ScriptArgs $ScriptArgs
+  Write-LauncherLog -Message "Ejecutando $TaskName con '$Runner $($runArguments -join ' ')'"
+
+  $process = Start-Process -FilePath $Runner -ArgumentList $runArguments -WorkingDirectory $WorkingDirectory -WindowStyle Minimized -PassThru -Wait
+  if ($process.ExitCode -ne 0) {
+    throw "Fallo '$TaskName' (exit code $($process.ExitCode))."
+  }
 }
 
 function Start-ServiceIfNeeded {
@@ -134,6 +183,7 @@ function Start-ServiceIfNeeded {
     [Parameter(Mandatory = $true)][string]$Runner,
     [Parameter(Mandatory = $true)][string]$WorkingDirectory,
     [Parameter(Mandatory = $true)][string]$Command,
+    [string[]]$CommandArgs = @(),
     [Parameter(Mandatory = $true)][int]$TimeoutSeconds
   )
 
@@ -142,8 +192,9 @@ function Start-ServiceIfNeeded {
     return $true
   }
 
-  Write-LauncherLog -Message "Iniciando $Name con '$Runner run $Command' desde $WorkingDirectory"
-  Start-Process -FilePath $Runner -ArgumentList @('run', $Command) -WorkingDirectory $WorkingDirectory -WindowStyle Minimized | Out-Null
+  $runArguments = Get-RunArguments -ScriptName $Command -ScriptArgs $CommandArgs
+  Write-LauncherLog -Message "Iniciando $Name con '$Runner $($runArguments -join ' ')' desde $WorkingDirectory"
+  Start-Process -FilePath $Runner -ArgumentList $runArguments -WorkingDirectory $WorkingDirectory -WindowStyle Minimized | Out-Null
 
   if (Wait-Port -Port $Port -TimeoutSeconds $TimeoutSeconds -ServiceName $Name) {
     return $true
@@ -216,6 +267,55 @@ try {
   Write-LauncherLog -Message "Runner detectado: $runner"
   Write-LauncherLog -Message "BackendPort=$BackendPort FrontendPort=$FrontendPort Timeout=${StartTimeoutSeconds}s"
 
+  $appMode = 'production'
+  if ($launcherConfig.ContainsKey('APP_MODE') -and -not [string]::IsNullOrWhiteSpace([string]$launcherConfig['APP_MODE'])) {
+    $appMode = ([string]$launcherConfig['APP_MODE']).Trim().ToLowerInvariant()
+  }
+
+  if ($appMode -notin @('production', 'development')) {
+    Write-LauncherLog -Level 'WARN' -Message "APP_MODE='$appMode' invalido; se usa 'production'."
+    $appMode = 'production'
+  }
+
+  $autoBuildOnMissingDist = $true
+  if ($launcherConfig.ContainsKey('AUTO_BUILD_ON_MISSING_DIST')) {
+    $autoBuildOnMissingDist = ConvertTo-Bool -Value ([string]$launcherConfig['AUTO_BUILD_ON_MISSING_DIST']) -Default $true
+  }
+
+  $backendCommand = 'start:dev'
+  $backendCommandArgs = @()
+  $frontendCommand = 'dev'
+  $frontendCommandArgs = @()
+
+  if ($appMode -eq 'production') {
+    $backendDistPath = Join-Path $backendDir 'dist\main.js'
+    $frontendDistPath = Join-Path $frontendDir 'dist\index.html'
+
+    if ((-not (Test-Path -LiteralPath $backendDistPath)) -or (-not (Test-Path -LiteralPath $frontendDistPath))) {
+      if ($autoBuildOnMissingDist) {
+        Write-LauncherLog -Level 'WARN' -Message 'No se encontro build de produccion; se ejecuta build inicial (una sola vez).'
+        Invoke-RunAndWait -Runner $runner -WorkingDirectory $backendDir -ScriptName 'build' -TaskName 'build backend'
+        Invoke-RunAndWait -Runner $runner -WorkingDirectory $frontendDir -ScriptName 'build' -TaskName 'build frontend'
+      } else {
+        Write-LauncherLog -Level 'WARN' -Message 'No se encontro build y AUTO_BUILD_ON_MISSING_DIST=false. Se usa modo development.'
+      }
+    }
+
+    if ((Test-Path -LiteralPath $backendDistPath) -and (Test-Path -LiteralPath $frontendDistPath)) {
+      $backendCommand = 'start:prod'
+      $frontendCommand = 'preview'
+      $frontendCommandArgs = @('--host', '127.0.0.1', '--port', "$FrontendPort", '--strictPort')
+      Write-LauncherLog -Message 'Modo production activo: start:prod + preview.'
+    } else {
+      $appMode = 'development'
+      Write-LauncherLog -Level 'WARN' -Message 'Sin build disponible; fallback a modo development (mas lento).'
+    }
+  }
+
+  if ($appMode -eq 'development') {
+    Write-LauncherLog -Message 'Modo development activo: start:dev + dev.'
+  }
+
   $backendAlreadyRunning = Test-PortListening -Port $BackendPort
   $frontendAlreadyRunning = Test-PortListening -Port $FrontendPort
 
@@ -225,11 +325,11 @@ try {
     exit 0
   }
 
-  if (-not (Start-ServiceIfNeeded -Name 'Backend' -Port $BackendPort -Runner $runner -WorkingDirectory $backendDir -Command 'start:dev' -TimeoutSeconds $StartTimeoutSeconds)) {
+  if (-not (Start-ServiceIfNeeded -Name 'Backend' -Port $BackendPort -Runner $runner -WorkingDirectory $backendDir -Command $backendCommand -CommandArgs $backendCommandArgs -TimeoutSeconds $StartTimeoutSeconds)) {
     throw "No se pudo iniciar backend en 127.0.0.1:$BackendPort"
   }
 
-  if (-not (Start-ServiceIfNeeded -Name 'Frontend' -Port $FrontendPort -Runner $runner -WorkingDirectory $frontendDir -Command 'dev' -TimeoutSeconds $StartTimeoutSeconds)) {
+  if (-not (Start-ServiceIfNeeded -Name 'Frontend' -Port $FrontendPort -Runner $runner -WorkingDirectory $frontendDir -Command $frontendCommand -CommandArgs $frontendCommandArgs -TimeoutSeconds $StartTimeoutSeconds)) {
     throw "No se pudo iniciar frontend en 127.0.0.1:$FrontendPort"
   }
 

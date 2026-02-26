@@ -55,13 +55,13 @@ Test-NetConnection -ComputerName 192.168.100.8 -Port 5432
 Instalar dependencias en la raiz:
 
 ```powershell
-bun install
+npm install
 ```
 
 Fallback:
 
 ```powershell
-npm install
+bun install
 ```
 
 Editar `backend/.env` con la DB remota:
@@ -91,7 +91,11 @@ BACKEND_PORT=47832
 FRONTEND_PORT=5173
 APP_URL=http://127.0.0.1:5173/login
 START_TIMEOUT_SECONDS=60
+APP_MODE=production
+AUTO_BUILD_ON_MISSING_DIST=true
 ```
+
+> Para acelerar el inicio en clientes, usar `APP_MODE=production`. El primer arranque puede tardar mas si necesita ejecutar build inicial.
 
 ---
 
@@ -121,6 +125,13 @@ Al hacer doble clic:
 2. Si no, inicia backend y frontend (en ese orden), espera puertos y abre navegador.
 3. Evita duplicar procesos.
 4. Log en `C:\SistemaCajaEstudio\logs\launcher.log`.
+
+En `production` usa:
+
+- Backend: `start:prod`
+- Frontend: `preview`
+
+Esto reduce notablemente el tiempo de inicio comparado con `start:dev` + `dev`.
 
 ---
 
