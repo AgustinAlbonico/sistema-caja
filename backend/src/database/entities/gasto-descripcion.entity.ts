@@ -7,7 +7,7 @@ import {
 
 @Entity('gasto_descripciones')
 export class GastoDescripcion {
-  @PrimaryGeneratedColumn({ name: 'idgastodescripcion' })
+  @PrimaryGeneratedColumn({ name: 'idGastoDescripcion' })
   idGastoDescripcion: number;
 
   @Column({ name: 'descripcion', unique: true })
@@ -16,6 +16,6 @@ export class GastoDescripcion {
   @Column({ name: 'activo', default: true })
   activo: boolean;
 
-  @CreateDateColumn({ name: 'fechacreacion' })
+  @CreateDateColumn({ name: 'fechaCreacion' })
   fechaCreacion: Date;
 }

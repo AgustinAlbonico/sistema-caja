@@ -59,6 +59,95 @@ function Read-KeyValueEnvFile {
   return $result
 }
 
+function Get-MapString {
+  param(
+    [hashtable]$Map,
+    [Parameter(Mandatory = $true)][string]$Key,
+    [string]$Default = ''
+  )
+
+  if ($null -eq $Map) {
+    return $Default
+  }
+
+  if ($Map.ContainsKey($Key) -and -not [string]::IsNullOrWhiteSpace([string]$Map[$Key])) {
+    return [string]$Map[$Key]
+  }
+
+  return $Default
+}
+
+function ConvertTo-IntOrDefault {
+  param(
+    [string]$Value,
+    [int]$Default
+  )
+
+  $parsedValue = 0
+  if (-not [string]::IsNullOrWhiteSpace($Value) -and [int]::TryParse($Value, [ref]$parsedValue)) {
+    return $parsedValue
+  }
+
+  return $Default
+}
+
+function Write-BackendRuntimeConfig {
+  param(
+    [Parameter(Mandatory = $true)][string]$RuntimeRoot,
+    [Parameter(Mandatory = $true)][hashtable]$LauncherConfig,
+    [Parameter(Mandatory = $true)][hashtable]$BackendEnv,
+    [Parameter(Mandatory = $true)][int]$BackendPort,
+    [Parameter(Mandatory = $true)][int]$FrontendPort
+  )
+
+  $configDir = Join-Path $RuntimeRoot 'config'
+  Ensure-Directory -Path $configDir
+
+  $runtimeConfigPath = Join-Path $configDir 'config.json'
+  $runtimeConfigSnapshotPath = Join-Path $configDir 'config.launcher.json'
+  $backendHost = Get-MapString -Map $LauncherConfig -Key 'BACKEND_HOST' -Default '127.0.0.1'
+
+  $dbHost = Get-MapString -Map $BackendEnv -Key 'DB_HOST' -Default '127.0.0.1'
+  $dbPort = ConvertTo-IntOrDefault -Value (Get-MapString -Map $BackendEnv -Key 'DB_PORT' -Default '5432') -Default 5432
+  $dbUser = Get-MapString -Map $BackendEnv -Key 'DB_USER' -Default 'postgres'
+  $dbPassword = Get-MapString -Map $BackendEnv -Key 'DB_PASSWORD' -Default 'postgres'
+  $dbName = Get-MapString -Map $BackendEnv -Key 'DB_NAME' -Default 'sistema_caja'
+
+  $jwtSecret = Get-MapString -Map $BackendEnv -Key 'JWT_SECRET' -Default 'change-me'
+  $jwtExpiration = Get-MapString -Map $BackendEnv -Key 'JWT_EXPIRATION' -Default '7d'
+  $schemaVersion = Get-MapString -Map $LauncherConfig -Key 'SCHEMA_VERSION' -Default '1.0.0'
+  $frontendUrl = "http://127.0.0.1:$FrontendPort"
+
+  $runtimeConfig = @{
+    port = $BackendPort
+    host = $backendHost
+    database = @{
+      host = $dbHost
+      port = $dbPort
+      username = $dbUser
+      password = $dbPassword
+      database = $dbName
+    }
+    jwt = @{
+      secret = $jwtSecret
+      expiration = $jwtExpiration
+    }
+    schemaVersion = $schemaVersion
+    frontendUrl = $frontendUrl
+  }
+
+  $runtimeConfigJson = $runtimeConfig | ConvertTo-Json -Depth 6
+  Set-Content -LiteralPath $runtimeConfigPath -Value $runtimeConfigJson -Encoding UTF8
+  Set-Content -LiteralPath $runtimeConfigSnapshotPath -Value $runtimeConfigJson -Encoding UTF8
+
+  $env:APP_CONFIG_PATH = $runtimeConfigPath
+  $env:SISTEMA_CAJA_RUNTIME_ROOT = $RuntimeRoot
+
+  Write-LauncherLog -Message "Config runtime backend sincronizada en $runtimeConfigPath"
+  Write-LauncherLog -Message "Snapshot de config runtime en $runtimeConfigSnapshotPath"
+  Write-LauncherLog -Message "Backend host/port forzados a ${backendHost}:$BackendPort (DB: ${dbHost}:$dbPort)"
+}
+
 function Resolve-Port {
   param(
     [hashtable]$LauncherConfig,
@@ -99,7 +188,9 @@ function Wait-Port {
   param(
     [Parameter(Mandatory = $true)][int]$Port,
     [Parameter(Mandatory = $true)][int]$TimeoutSeconds,
-    [Parameter(Mandatory = $true)][string]$ServiceName
+    [Parameter(Mandatory = $true)][string]$ServiceName,
+    [System.Diagnostics.Process]$ObservedProcess,
+    [string]$StdErrLogPath = ''
   )
 
   $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
@@ -109,6 +200,21 @@ function Wait-Port {
       return $true
     }
 
+    if ($null -ne $ObservedProcess -and $ObservedProcess.HasExited) {
+      Write-LauncherLog -Level 'ERROR' -Message "$ServiceName finalizo antes de abrir puerto (exit code $($ObservedProcess.ExitCode))."
+
+      if (-not [string]::IsNullOrWhiteSpace($StdErrLogPath) -and (Test-Path -LiteralPath $StdErrLogPath)) {
+        $stderrTail = Get-Content -LiteralPath $StdErrLogPath -Tail 6 -ErrorAction SilentlyContinue
+        foreach ($line in $stderrTail) {
+          if (-not [string]::IsNullOrWhiteSpace($line)) {
+            Write-LauncherLog -Level 'ERROR' -Message "$ServiceName stderr> $line"
+          }
+        }
+      }
+
+      return $false
+    }
+
     Start-Sleep -Milliseconds 500
   }
 
@@ -116,6 +222,10 @@ function Wait-Port {
 }
 
 function Resolve-Runner {
+  if (Get-Command npm.cmd -ErrorAction SilentlyContinue) {
+    return 'npm'
+  }
+
   if (Get-Command npm -ErrorAction SilentlyContinue) {
     return 'npm'
   }
@@ -125,6 +235,25 @@ function Resolve-Runner {
   }
 
   throw 'No se encontro npm ni bun instalados en PATH.'
+}
+
+function Get-RunnerProcessSpec {
+  param(
+    [Parameter(Mandatory = $true)][string]$Runner,
+    [Parameter(Mandatory = $true)][string[]]$RunArguments
+  )
+
+  if ($Runner -eq 'npm') {
+    return @{
+      FilePath = 'cmd.exe'
+      Arguments = @('/c', 'npm.cmd') + $RunArguments
+    }
+  }
+
+  return @{
+    FilePath = 'bun'
+    Arguments = $RunArguments
+  }
 }
 
 function ConvertTo-Bool {
@@ -170,7 +299,8 @@ function Invoke-RunAndWait {
   $runArguments = Get-RunArguments -ScriptName $ScriptName -ScriptArgs $ScriptArgs
   Write-LauncherLog -Message "Ejecutando $TaskName con '$Runner $($runArguments -join ' ')'"
 
-  $process = Start-Process -FilePath $Runner -ArgumentList $runArguments -WorkingDirectory $WorkingDirectory -WindowStyle Minimized -PassThru -Wait
+  $processSpec = Get-RunnerProcessSpec -Runner $Runner -RunArguments $runArguments
+  $process = Start-Process -FilePath $processSpec.FilePath -ArgumentList $processSpec.Arguments -WorkingDirectory $WorkingDirectory -WindowStyle Minimized -PassThru -Wait
   if ($process.ExitCode -ne 0) {
     throw "Fallo '$TaskName' (exit code $($process.ExitCode))."
   }
@@ -194,9 +324,13 @@ function Start-ServiceIfNeeded {
 
   $runArguments = Get-RunArguments -ScriptName $Command -ScriptArgs $CommandArgs
   Write-LauncherLog -Message "Iniciando $Name con '$Runner $($runArguments -join ' ')' desde $WorkingDirectory"
-  Start-Process -FilePath $Runner -ArgumentList $runArguments -WorkingDirectory $WorkingDirectory -WindowStyle Minimized | Out-Null
 
-  if (Wait-Port -Port $Port -TimeoutSeconds $TimeoutSeconds -ServiceName $Name) {
+  $stdOutLogPath = Join-Path $script:LogsDir ("{0}-stdout.log" -f $Name.ToLowerInvariant())
+  $stdErrLogPath = Join-Path $script:LogsDir ("{0}-stderr.log" -f $Name.ToLowerInvariant())
+  $processSpec = Get-RunnerProcessSpec -Runner $Runner -RunArguments $runArguments
+  $serviceProcess = Start-Process -FilePath $processSpec.FilePath -ArgumentList $processSpec.Arguments -WorkingDirectory $WorkingDirectory -WindowStyle Minimized -PassThru -RedirectStandardOutput $stdOutLogPath -RedirectStandardError $stdErrLogPath
+
+  if (Wait-Port -Port $Port -TimeoutSeconds $TimeoutSeconds -ServiceName $Name -ObservedProcess $serviceProcess -StdErrLogPath $stdErrLogPath) {
     return $true
   }
 
@@ -216,6 +350,7 @@ try {
   $runtimeRoot = 'C:\SistemaCajaEstudio'
   $logsDir = Join-Path $runtimeRoot 'logs'
   Ensure-Directory -Path $logsDir
+  $script:LogsDir = $logsDir
 
   $script:LogFile = Join-Path $logsDir 'launcher.log'
   Write-LauncherLog -Message '--- Inicio de launcher ---'
@@ -241,7 +376,7 @@ try {
   $FrontendPort = Resolve-Port -LauncherConfig $launcherConfig -BackendEnv $backendEnv -Current $FrontendPort -LauncherKey 'FRONTEND_PORT' -BackendKey 'FRONTEND_PORT'
 
   if ($backendEnv.ContainsKey('PORT')) {
-    Write-LauncherLog -Level 'WARN' -Message "backend/.env define PORT=$($backendEnv['PORT']); launcher usa BACKEND_PORT=$BackendPort. Ajuste scripts/windows/launcher.env si necesita otro puerto."
+    Write-LauncherLog -Message "backend/.env define PORT=$($backendEnv['PORT']); launcher sincronizara backend con BACKEND_PORT=$BackendPort."
   }
 
   if ([string]::IsNullOrWhiteSpace($AppUrl)) {
@@ -255,6 +390,8 @@ try {
   if ($launcherConfig.ContainsKey('START_TIMEOUT_SECONDS')) {
     $StartTimeoutSeconds = [int]$launcherConfig['START_TIMEOUT_SECONDS']
   }
+
+  Write-BackendRuntimeConfig -RuntimeRoot $runtimeRoot -LauncherConfig $launcherConfig -BackendEnv $backendEnv -BackendPort $BackendPort -FrontendPort $FrontendPort
 
   $requiredDbKeys = @('DB_HOST', 'DB_PORT', 'DB_USER', 'DB_PASSWORD', 'DB_NAME')
   foreach ($key in $requiredDbKeys) {

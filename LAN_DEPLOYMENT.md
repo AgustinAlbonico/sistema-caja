@@ -134,6 +134,8 @@ Al hacer doble clic:
 3. Evita duplicar procesos.
 4. Log en `C:\SistemaCajaEstudio\logs\launcher.log`.
 
+Ademas, el launcher genera/sincroniza automaticamente `C:\SistemaCajaEstudio\config\config.json` (y snapshot en `config.launcher.json`) y exporta `APP_CONFIG_PATH` para que el backend use el mismo `BACKEND_PORT` del launcher (evita desfasajes como `PORT=3000` vs `BACKEND_PORT=47832`).
+
 En `production` usa:
 
 - Backend: `start:prod`
@@ -155,3 +157,5 @@ Diagnostico manual:
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\windows\start-app.ps1
 ```
+
+Si se queda en "Iniciando Backend", revisar en `C:\SistemaCajaEstudio\logs\backend-stderr.log` y confirmar que aparezca la linea de sincronizacion de `config.json`.
